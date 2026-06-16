@@ -6,7 +6,6 @@ import logging
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
-    HVACAction,
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -121,17 +120,18 @@ class TuyaIrAcClimate(CoordinatorEntity, ClimateEntity):
         return INTERNAL_TO_HA_HVAC.get(internal, HVACMode.COOL)
 
     @property
-    def hvac_action(self) -> HVACAction:
+    def icon(self) -> str:
+        # Icône dynamique selon la vitesse de ventilation
+        # (mêmes icônes que le sélecteur de ventilation).
         if not self._is_on:
-            return HVACAction.OFF
-        internal = M_TO_MODE.get(self._get_int("mode", 0), "cool")
+            return "mdi:fan-off"
+        fan = F_TO_FAN.get(self._get_int("wind", 0), "auto")
         return {
-            "cool": HVACAction.COOLING,
-            "heat": HVACAction.HEATING,
-            "dry": HVACAction.DRYING,
-            "fan_only": HVACAction.FAN,
-            "auto": HVACAction.IDLE,
-        }.get(internal, HVACAction.IDLE)
+            "auto": "mdi:fan-auto",
+            "low": "mdi:fan-speed-1",
+            "medium": "mdi:fan-speed-2",
+            "high": "mdi:fan-speed-3",
+        }.get(fan, "mdi:fan")
 
     @property
     def extra_state_attributes(self) -> dict:
