@@ -1,0 +1,51 @@
+# ============================================================
+#  Carte THERMOSTAT pour la pièce (cadran + bouton ON/OFF)
+#  À coller dans ton dashboard en mode YAML.
+#  Remplace climate.climatisation_ir par ton entité si différente.
+# ============================================================
+type: thermostat
+entity: climate.climatisation_ir
+name: Clim
+features:
+  - type: climate-hvac-modes
+    hvac_modes:
+      - cool
+      - heat
+      - auto
+      - dry
+      - fan_only
+      - "off"
+  - type: climate-fan-modes
+    style: icons
+    fan_modes:
+      - auto
+      - low
+      - medium
+      - high
+
+# ============================================================
+#  ALTERNATIVE : carte TILE compacte
+#  Affiche en permanence consigne, mode et ventilation
+#  sous forme de boutons, avec l'état (Éteint/Refroidissement).
+# ============================================================
+# type: tile
+# entity: climate.climatisation_ir
+# name: Clim
+# features_position: bottom
+# features:
+#   - type: climate-hvac-modes
+#     hvac_modes:
+#       - cool
+#       - heat
+#       - auto
+#       - dry
+#       - fan_only
+#       - "off"
+#   - type: target-temperature
+#   - type: climate-fan-modes
+#     style: icons
+#     fan_modes:
+#       - auto
+#       - low
+#       - medium
+#       - high

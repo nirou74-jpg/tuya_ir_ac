@@ -6,6 +6,7 @@ import logging
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -111,10 +112,36 @@ class TuyaIrAcClimate(CoordinatorEntity, ClimateEntity):
     # ------------------------------------------------------------------ #
     @property
     def hvac_mode(self) -> HVACMode:
+        # Éteint -> OFF pour que le bouton marche/arrêt de la carte soit correct.
+        # La consigne (target_temperature) et la ventilation (fan_mode) restent
+        # lisibles même éteint car elles lisent directement le status.
         if not self._is_on:
             return HVACMode.OFF
         internal = M_TO_MODE.get(self._get_int("mode", 0), "cool")
         return INTERNAL_TO_HA_HVAC.get(internal, HVACMode.COOL)
+
+    @property
+    def hvac_action(self) -> HVACAction:
+        if not self._is_on:
+            return HVACAction.OFF
+        internal = M_TO_MODE.get(self._get_int("mode", 0), "cool")
+        return {
+            "cool": HVACAction.COOLING,
+            "heat": HVACAction.HEATING,
+            "dry": HVACAction.DRYING,
+            "fan_only": HVACAction.FAN,
+            "auto": HVACAction.IDLE,
+        }.get(internal, HVACAction.IDLE)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        # Mode et ventilation mémorisés, visibles même clim éteinte.
+        internal = M_TO_MODE.get(self._get_int("mode", 0), "cool")
+        return {
+            "mode_reel": internal,
+            "ventilation_reelle": F_TO_FAN.get(self._get_int("wind", 0), "auto"),
+            "consigne": self._get_int("temp", 25),
+        }
 
     @property
     def fan_mode(self) -> str:
@@ -145,18 +172,13 @@ class TuyaIrAcClimate(CoordinatorEntity, ClimateEntity):
             await self.coordinator.async_send([{"code": "switch", "value": False}])
             return
 
-        commands: list[dict] = []
-        # S'assurer que l'appareil est allumé
-        if not self._is_on:
-            commands.append({"code": "switch", "value": True})
-
         internal = HA_HVAC_TO_INTERNAL.get(hvac_mode)
         m_val = MODE_TO_M.get(internal)
-        if m_val is not None:
-            commands.append({"code": "M", "value": m_val})
-
-        if commands:
-            await self.coordinator.async_send(commands)
+        if m_val is None:
+            return
+        # Envoyer le mode allume déjà la clim (power passe à 1) ;
+        # l'API n'accepte qu'une commande à la fois, donc pas de switch ici.
+        await self.coordinator.async_send([{"code": "M", "value": m_val}])
 
     async def async_turn_on(self) -> None:
         await self.coordinator.async_send([{"code": "switch", "value": True}])
