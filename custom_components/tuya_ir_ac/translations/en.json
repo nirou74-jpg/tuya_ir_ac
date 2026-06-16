@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tuya IR AC",
+        "description": "Enter your Tuya IoT Platform credentials and your AC device ID.",
+        "data": {
+          "client_id": "Client ID (Access ID)",
+          "secret_key": "Secret Key (Access Secret)",
+          "device_id": "AC Device ID",
+          "region": "Tuya datacenter region"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid Client ID or Secret Key.",
+      "cannot_connect": "Cannot reach Tuya API or device not found.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This AC is already configured."
+    }
+  }
+}

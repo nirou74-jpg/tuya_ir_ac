@@ -1,0 +1,14 @@
+{
+  "domain": "tuya_ir_ac",
+  "name": "Tuya IR AC",
+  "codeowners": ["@nirou74-jpg"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/nirou74-jpg/tuya_ir_ac",
+  "homeassistant": "2024.1.0",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/nirou74-jpg/tuya_ir_ac/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}
