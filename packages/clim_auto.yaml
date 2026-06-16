@@ -1,169 +1,40 @@
 # =============================================================================
 #  PACKAGE CLIM AUTO  —  Tuya IR AC
 # =============================================================================
-#  Contient : curseurs de reglage (input_number), capteurs calcules (template),
-#  et les 3 automatisations (allumage intelligent, coupure auto, alerte fenetres).
+#  Reference interieure : sensor.clim_temperature_interieure (mediane salon+chambres)
+#  Exterieur (jardin)    : sensor.station_temperature_6
+#  Energie reseau        : sensor.envoy_122328115201_current_net_power_consumption
+#                          (kW ; NEGATIF = surplus exporte vers EDF)
+#  Clim                  : climate.climatisation_ir
+#  Notification          : notify.mobile_app_inir
+#  Curseurs (input_number) : deja crees en Helpers
 #
-#  DEUX FACONS DE L'UTILISER :
-#
-#  A) En fichier package (tout d'un coup) :
-#     1. Dans configuration.yaml, active les packages UNE fois :
-#          homeassistant:
-#            packages: !include_dir_named packages
-#     2. Place ce fichier dans  config/packages/clim_auto.yaml
-#     3. Verifie la config (Outils de developpement > YAML > Verifier la config)
-#     4. Redemarre Home Assistant.
-#
-#  B) En UI (recommande si tu debutes) :
-#     - Cree les input_number via Parametres > Helpers > Nombre
-#     - Cree les sensors template via Parametres > Helpers > Modele
-#     - Cree les automations via Parametres > Automatisations > Modifier en YAML
-#       (copie chaque bloc sous "automation:" un par un)
-#
-#  ENTITES UTILISEES (adapte si besoin) :
-#     Interieur (moyenne) : sensor.station_temperature_13 / _3 / _4
-#     Exterieur (jardin)  : sensor.station_temperature_6
-#     Energie reseau      : sensor.envoy_122328115201_current_net_power_consumption
-#                           (kW ; NEGATIF = surplus exporte vers EDF)
-#     Clim                : climate.climatisation_ir
-#     Notification        : notify.mobile_app_inir
+#  Installation : configuration.yaml ->
+#    homeassistant:
+#      packages: !include_dir_named packages
+#  Puis deposer ce fichier dans config/packages/clim_auto.yaml et redemarrer.
 # =============================================================================
 
-
 # -----------------------------------------------------------------------------
-#  CURSEURS DE REGLAGE
-# -----------------------------------------------------------------------------
-input_number:
-  clim_seuil_exterieur:
-    name: Clim seuil exterieur
-    min: 20
-    max: 45
-    step: 0.5
-    initial: 30
-    unit_of_measurement: "°C"
-    mode: slider
-    icon: mdi:sun-thermometer
-
-  clim_seuil_interieur:
-    name: Clim seuil interieur
-    min: 20
-    max: 35
-    step: 0.5
-    initial: 25
-    unit_of_measurement: "°C"
-    mode: slider
-    icon: mdi:home-thermometer
-
-  clim_consigne_mini:
-    name: Clim consigne mini
-    min: 18
-    max: 24
-    step: 0.5
-    initial: 21
-    unit_of_measurement: "°C"
-    mode: slider
-    icon: mdi:thermometer-low
-
-  clim_consigne_maxi:
-    name: Clim consigne maxi
-    min: 24
-    max: 30
-    step: 0.5
-    initial: 26
-    unit_of_measurement: "°C"
-    mode: slider
-    icon: mdi:thermometer-high
-
-  clim_delta_coupure:
-    name: Clim delta coupure
-    min: 1
-    max: 8
-    step: 0.5
-    initial: 3
-    unit_of_measurement: "°C"
-    mode: slider
-    icon: mdi:thermometer-minus
-
-  clim_surplus_mini:
-    name: Clim surplus mini
-    min: 0
-    max: 6
-    step: 0.1
-    initial: 1.5
-    unit_of_measurement: "kW"
-    mode: slider
-    icon: mdi:solar-power
-
-  clim_anti_rebond:
-    name: Clim anti-rebond
-    min: 2
-    max: 30
-    step: 1
-    initial: 10
-    unit_of_measurement: "min"
-    mode: slider
-    icon: mdi:timer-cog
-
-
-# -----------------------------------------------------------------------------
-#  CAPTEURS CALCULES
+#  CAPTEUR DELTA (affichable) : interieur median - exterieur
+#  Positif = il fait plus chaud dedans que dehors.
 # -----------------------------------------------------------------------------
 template:
   - sensor:
-      # Temperature interieure moyenne (salon + 2 chambres)
-      - name: Clim temperature interieure
-        unique_id: clim_temperature_interieure
-        unit_of_measurement: "°C"
-        state_class: measurement
-        device_class: temperature
-        state: >
-          {% set pieces = [
-            states('sensor.station_temperature_13'),
-            states('sensor.station_temperature_3'),
-            states('sensor.station_temperature_4')
-          ] | map('float', 0) | list %}
-          {{ (pieces | sum / pieces | length) | round(1) }}
-
-      # Delta interieur moyen - exterieur (positif = plus chaud dedans)
       - name: Clim delta
         unique_id: clim_delta
         unit_of_measurement: "°C"
         state_class: measurement
+        icon: mdi:thermometer-minus
         state: >
           {{ ((states('sensor.clim_temperature_interieure') | float(0))
              - (states('sensor.station_temperature_6') | float(0))) | round(1) }}
 
-      # Consigne cible intelligente (grille + bonus surplus + garde-fous)
-      - name: Clim consigne cible
-        unique_id: clim_consigne_cible
-        unit_of_measurement: "°C"
-        state: >
-          {% set t = states('sensor.clim_temperature_interieure') | float(25) %}
-          {% set cmin = states('input_number.clim_consigne_mini') | float(21) %}
-          {% set cmax = states('input_number.clim_consigne_maxi') | float(26) %}
-          {% set net = states('sensor.envoy_122328115201_current_net_power_consumption') | float(0) %}
-          {% set surplus = states('input_number.clim_surplus_mini') | float(1.5) %}
-          {% if t <= 26 %}
-            {% set base = 25 %}
-          {% elif t <= 28 %}
-            {% set base = 24 %}
-          {% elif t <= 30 %}
-            {% set base = 23 %}
-          {% else %}
-            {% set base = 22 %}
-          {% endif %}
-          {% set bonus = 1 if net < (-1 * surplus) else 0 %}
-          {{ [[base - bonus, cmin] | max, cmax] | min }}
 
-
-# -----------------------------------------------------------------------------
-#  AUTOMATISATIONS
-# -----------------------------------------------------------------------------
 automation:
-  # ---- 1. ALLUMAGE INTELLIGENT ---------------------------------------------
+  # ---- 1. ALLUMAGE INTELLIGENT ----
   - alias: Clim - Allumage intelligent
     id: clim_allumage_intelligent
-    description: Allume la clim si chaud (ou gros surplus solaire), regle mode + consigne
     mode: single
     triggers:
       - trigger: state
@@ -190,12 +61,6 @@ automation:
               {{ states('sensor.envoy_122328115201_current_net_power_consumption') | float(0)
                  < (-1 * (states('input_number.clim_surplus_mini') | float(1.5)))
                  and states('sensor.clim_temperature_interieure') | float(0) > 24 }}
-      # Anti-rebond : ne pas rallumer si derniere action trop recente
-      - condition: template
-        value_template: >
-          {% set last = state_attr(this.entity_id, 'last_triggered') %}
-          {% set mins = states('input_number.clim_anti_rebond') | int(10) %}
-          {{ last is none or (now() - last) > timedelta(minutes=mins) }}
     actions:
       - action: climate.set_hvac_mode
         target:
@@ -208,19 +73,29 @@ automation:
         target:
           entity_id: climate.climatisation_ir
         data:
-          temperature: "{{ states('sensor.clim_consigne_cible') | int(24) }}"
+          temperature: >
+            {% set t = states('sensor.clim_temperature_interieure') | float(25) %}
+            {% set cmin = states('input_number.clim_consigne_mini') | float(21) %}
+            {% set cmax = states('input_number.clim_consigne_maxi') | float(26) %}
+            {% set net = states('sensor.envoy_122328115201_current_net_power_consumption') | float(0) %}
+            {% set surplus = states('input_number.clim_surplus_mini') | float(1.5) %}
+            {% if t <= 26 %}{% set base = 25 %}
+            {% elif t <= 28 %}{% set base = 24 %}
+            {% elif t <= 30 %}{% set base = 23 %}
+            {% else %}{% set base = 22 %}{% endif %}
+            {% set bonus = 1 if net < (-1 * surplus) else 0 %}
+            {{ [[base - bonus, cmin] | max, cmax] | min }}
 
-  # ---- 2. COUPURE AUTO ------------------------------------------------------
+  # ---- 2. COUPURE AUTO ----
   - alias: Clim - Coupure auto
     id: clim_coupure_auto
-    description: Coupe la clim quand le delta interieur/exterieur devient faible
     mode: single
     triggers:
       - trigger: numeric_state
         entity_id: sensor.clim_delta
         below: input_number.clim_delta_coupure
         for:
-          minutes: "{{ states('input_number.clim_anti_rebond') | int(10) }}"
+          minutes: 10
     conditions:
       - condition: state
         entity_id: climate.climatisation_ir
@@ -232,10 +107,9 @@ automation:
         data:
           hvac_mode: "off"
 
-  # ---- 3. ALERTE FENETRES ---------------------------------------------------
+  # ---- 3. ALERTE FENETRES ----
   - alias: Clim - Alerte ouvrir les fenetres
     id: clim_alerte_fenetres
-    description: Previent quand il fait plus frais dehors que dedans et qu'il fait encore chaud
     mode: single
     triggers:
       - trigger: numeric_state
