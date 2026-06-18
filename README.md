@@ -1,7 +1,7 @@
 # Tuya IR AC — Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub release](https://img.shields.io/github/release/VOTRE_PSEUDO/tuya_ir_ac.svg)](https://github.com/VOTRE_PSEUDO/tuya_ir_ac/releases)
+[![GitHub release](https://img.shields.io/github/release/nirou74-jpg/tuya_ir_ac.svg)](https://github.com/nirou74-jpg/tuya_ir_ac/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Intégration personnalisée pour contrôler une **climatisation infrarouge Tuya** (catégorie `infrared_ac`, pilotée par un blaster/thermostat IR SmartLife) qui apparaît comme *unsupported* dans l'intégration Tuya officielle de Home Assistant.
@@ -39,7 +39,7 @@ L'état est lu depuis `/v1.0/devices/{device_id}/status` (`power`, `mode`, `temp
 
 1. Ouvrez **HACS** dans Home Assistant.
 2. Menu (3 points en haut à droite) → **Dépôts personnalisés**.
-3. URL : `https://github.com/VOTRE_PSEUDO/tuya_ir_ac` — Type : **Integration**.
+3. URL : `https://github.com/nirou74-jpg/tuya_ir_ac` — Type : **Integration**.
 4. Cliquez **Ajouter**, puis recherchez **Tuya IR AC** et téléchargez-le.
 5. **Redémarrez Home Assistant**.
 
