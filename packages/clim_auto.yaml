@@ -46,9 +46,6 @@ automation:
       - condition: state
         entity_id: climate.climatisation_ir
         state: "off"
-      - condition: time
-        after: "10:00:00"
-        before: "20:00:00"
       - condition: or
         conditions:
           - condition: and
